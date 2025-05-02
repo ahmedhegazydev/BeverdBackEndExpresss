@@ -1,4 +1,6 @@
 const express = require('express');
+const mongoose = require('mongoose');
+
 const app = express();
 
 app.get('/', (req, res) => {
@@ -15,6 +17,13 @@ app.use('/products', productsRoute);
 
 const port = process.env.PORT || 3000;
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+const uri =
+  'mongodb+srv://engahmedhegazy2025:frb5N5iPBAnQZHdc@cluster0.mvid4sh.mongodb.net/all-data?retryWrites=true&w=majority&appName=Cluster0';
+mongoose
+  .connect(uri)
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  })
+  .catch(err => console.log(err));
