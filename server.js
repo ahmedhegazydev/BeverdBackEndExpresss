@@ -17,13 +17,15 @@ app.use('/products', productsRoute);
 
 const port = process.env.PORT || 3000;
 
-const uri =
-  'mongodb+srv://engahmedhegazy2025:frb5N5iPBAnQZHdc@cluster0.mvid4sh.mongodb.net/all-data?retryWrites=true&w=majority&appName=Cluster0';
 mongoose
-  .connect(uri)
+  .connect(process.env.MONGO_URI, {})
   .then(() => {
+    console.log('MongoDB Connected');
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
   })
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.log(err);
+    process.exit(1);
+  });
