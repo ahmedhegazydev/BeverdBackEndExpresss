@@ -1,4 +1,6 @@
+const express = require('express');
 const mongoose = require('mongoose');
+
 const { Product, ProductVariant } = require('./models/Product');
 const User = require('./models/User');
 const Order = require('./models/Order');

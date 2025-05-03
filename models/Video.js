@@ -1,3 +1,6 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
 const videoSchema = new mongoose.Schema(
   {
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
