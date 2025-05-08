@@ -18,6 +18,9 @@ const productSchema = new mongoose.Schema(
     basePrice: Number,
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     isFeatured: Boolean,
+
+    // ✅ Embed variants as a subdocument array
+    variants: [productVariantSchema],
   },
   { timestamps: true }
 );

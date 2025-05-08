@@ -61,26 +61,27 @@ const seedAllData = async () => {
     basePrice: 150,
     category: category._id,
     isFeatured: true,
+    variants: [
+      {
+        size: 'M',
+        color: 'White',
+        price: 150,
+        stock: 10,
+        images: ['https://example.com/white-shirt.jpg'],
+      },
+      {
+        size: 'L',
+        color: 'Black',
+        price: 150,
+        stock: 7,
+        images: ['https://example.com/black-shirt.jpg'],
+      },
+    ],
   });
 
-  // Seed Variants
-  const variant1 = await ProductVariant.create({
-    productId: product._id,
-    size: 'M',
-    color: 'White',
-    price: 150,
-    stock: 10,
-    images: ['https://example.com/white-shirt.jpg'],
-  });
-
-  const variant2 = await ProductVariant.create({
-    productId: product._id,
-    size: 'L',
-    color: 'Black',
-    price: 150,
-    stock: 7,
-    images: ['https://example.com/black-shirt.jpg'],
-  });
+  // Reference variant by index (embedded)
+  const variant1 = product.variants[0];
+  const variant2 = product.variants[1];
 
   // Seed Order
   await Order.create({
