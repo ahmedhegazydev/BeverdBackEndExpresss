@@ -4,16 +4,10 @@ const bcrypt = require('bcryptjs');
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    products: [
-      {
-        variantId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'ProductVariant',
-        },
-        quantity: Number,
-        price: Number,
-      },
+    productVariant: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
     ],
+
     totalPrice: Number,
     discount: Number,
     status: {

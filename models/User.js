@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const addressSchema = new mongoose.Schema({
-  label: String, // منزل، عمل...
+  label: String,
   city: String,
   street: String,
   zip: String,
@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema(
     favorites: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
     ],
+    orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }], // ✅ added here
   },
   { timestamps: true }
 );

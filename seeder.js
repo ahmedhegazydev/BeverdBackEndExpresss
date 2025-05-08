@@ -1,115 +1,147 @@
-const express = require('express');
 const mongoose = require('mongoose');
-
-const { Product, ProductVariant } = require('./models/Product');
-const User = require('./models/User');
-const Order = require('./models/Order');
-const Category = require('./models/Category');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const connectDB = async () => {
-  await mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+// Models
+const User = require('./models/User');
+const Category = require('./models/Category');
+const { Product, ProductVariant } = require('./models/Product');
+const Cart = require('./models/Cart');
+const Order = require('./models/Order');
+
+const dropAllCollections = async () => {
+  const collections = Object.keys(mongoose.connection.collections);
+  for (const collectionName of collections) {
+    await mongoose.connection.collections[collectionName].deleteMany({});
+  }
+  console.log('✅ All collections cleared.');
 };
 
-const seedAllData = async () => {
-  await connectDB();
+const seed = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ Connected to MongoDB');
 
-  // Clean collections
-  await Product.deleteMany();
-  await ProductVariant.deleteMany();
-  await User.deleteMany();
-  await Order.deleteMany();
-  await Category.deleteMany();
+    await dropAllCollections();
 
-  // Seed Category
-  const category = await Category.create({
-    name: 'T-Shirts',
-    slug: 't-shirts',
-    description: 'Comfortable and casual t-shirts',
-    image: 'https://example.com/cat.jpg',
-    isActive: true,
-  });
+    // Clear existing data
+    await User.deleteMany();
+    await Category.deleteMany();
+    await Product.deleteMany();
+    await Cart.deleteMany();
+    await Order.deleteMany();
 
-  // Seed User
-  const user = await User.create({
-    name: 'Test User',
-    email: 'test@example.com',
-    password: 'hashed-password',
-    phone: '01012345678',
-    addresses: [
-      {
-        label: 'Home',
-        city: 'Cairo',
-        street: 'Tahrir St.',
-        zip: '12345',
-        location: {
-          lat: 30.0444,
-          lng: 31.2357,
+    // Create category
+    const category = await Category.create({
+      name: 'Shirts',
+      slug: 'shirts',
+      description: 'Comfortable cotton shirts',
+      image: 'https://example.com/category.jpg',
+      isActive: true,
+    });
+
+    // Create user
+    const hashedPassword = await bcrypt.hash('123456', 10);
+    const user = await User.create({
+      name: 'Test User',
+      email: 'test@example.com',
+      password: hashedPassword,
+      phone: '01012345678',
+      gender: 'male',
+      birthDate: new Date('1995-01-01'),
+      addresses: [
+        {
+          label: 'Home',
+          city: 'Cairo',
+          street: 'Tahrir St',
+          zip: '12345',
+          location: { lat: 30.0444, lng: 31.2357 },
         },
-      },
-    ],
-  });
+      ],
+    });
 
-  // Seed Product
-  const product = await Product.create({
-    name: 'Classic Cotton T-Shirt',
-    description: '100% Cotton T-Shirt for daily wear',
-    brand: 'Beverd',
-    basePrice: 150,
-    category: category._id,
-    isFeatured: true,
-    variants: [
+    // 1. Define variant input
+    const variantData = [
       {
         size: 'M',
         color: 'White',
-        price: 150,
+        price: 100,
         stock: 10,
-        images: ['https://example.com/white-shirt.jpg'],
+        images: ['https://example.com/white.jpg'],
       },
       {
         size: 'L',
         color: 'Black',
-        price: 150,
-        stock: 7,
-        images: ['https://example.com/black-shirt.jpg'],
+        price: 110,
+        stock: 5,
+        images: ['https://example.com/black.jpg'],
       },
-    ],
-  });
+    ];
 
-  // Reference variant by index (embedded)
-  const variant1 = product.variants[0];
-  const variant2 = product.variants[1];
+    // 2. Create empty product first
+    const product = await Product.create({
+      name: 'Cotton Shirt',
+      description: 'Breathable cotton for daily wear',
+      brand: 'Beverd',
+      basePrice: 100,
+      category: category._id,
+      isFeatured: true,
+      variants: [], // temporary, we’ll fill in below
+    });
 
-  // Seed Order
-  await Order.create({
-    userId: user._id,
-    products: [
-      {
-        variantId: variant1._id,
-        quantity: 2,
-        price: 150,
-      },
-      {
-        variantId: variant2._id,
-        quantity: 1,
-        price: 150,
-      },
-    ],
-    totalPrice: 450,
-    status: 'pending',
-    paymentMethod: 'cash',
-    shippingAddress: {
-      city: 'Cairo',
-      street: 'Tahrir St.',
-      zip: '12345',
-    },
-  });
+    // 3. Create ProductVariant documents linked to this product
+    const savedVariants = await Promise.all(
+      variantData.map(variant =>
+        ProductVariant.create({
+          ...variant,
+          productId: product._id,
+        })
+      )
+    );
 
-  console.log('âœ… All Dummy Data Seeded Successfully!');
-  process.exit();
+    // 4. Now update product to reference those variants
+    product.variants = savedVariants.map(v => v._id); // use ObjectIds here
+    await product.save();
+
+    // Create cart
+    await Cart.create({
+      userId: user._id,
+      items: [
+        {
+          productId: product._id,
+          size: 'M',
+          color: 'White',
+          quantity: 2,
+        },
+        {
+          productId: product._id,
+          size: 'L',
+          color: 'Black',
+          quantity: 1,
+        },
+      ],
+    });
+
+    // 5. Create order with exact same variant IDs
+    const order = await Order.create({
+      userId: user._id,
+      productVariant: savedVariants.map(v => v._id), // same variant IDs
+      totalPrice: 310,
+      discount: 0,
+      paymentMethod: 'cash',
+      shippingAddress: user.addresses[0],
+    });
+
+    // 6. Link order to user
+    user.orders = [order._id];
+    await user.save();
+
+    console.log('✅ Dummy data seeded successfully.');
+    process.exit();
+  } catch (err) {
+    console.error('❌ Seeding error:', err);
+    process.exit(1);
+  }
 };
 
-seedAllData();
+seed();
