@@ -29,7 +29,7 @@ async function sendConfirmationEmail(userEmail, token) {
         from: 'kellie.mclaughlin31@ethereal.email',  // Replace
         to: userEmail,
         subject: 'Confirm your email',
-        text: `Please click the following link to confirm your email: http://localhost:3000/confirm/${token}`, //Adjust the link
+        text: `Please click the following link to confirm your email: http://localhost:3000/auth/confirm/${token}`, //Adjust the link
     };
 
     try {
@@ -46,7 +46,7 @@ async function sendResetPasswordEmail(userEmail, token) {
         from: 'kellie.mclaughlin31@ethereal.email',  // Replace
         to: userEmail,
         subject: 'Reset Password',
-        text: `Please click the following link to reset your password: http://localhost:3000/reset-password/${token}`, //Adjust
+        text: `Please click the following link to reset your password: http://localhost:3000/auth/reset-password/${token}`, //Adjust
     };
 
     try {
