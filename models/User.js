@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
       { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
     ],
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }], // ✅ added here
+
+    // models/User.js
+    otp: String,
+    otpExpires: Date,
   },
   { timestamps: true }
 );

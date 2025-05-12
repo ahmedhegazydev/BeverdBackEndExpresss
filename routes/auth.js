@@ -14,7 +14,7 @@ const User = require('../models/User'); // Import the User model here
 
 // Email Transport (using ethereal for testing)
 const transporter = nodemailer.createTransport({
-  host: 'smtp.ethereal.email',
+    host: 'smtp.ethereal.email',
     port: 587,
     auth: {
         user: 'willy.rohan9@ethereal.email',
@@ -24,20 +24,23 @@ const transporter = nodemailer.createTransport({
 
 
 // Helper function to send email
-async function sendConfirmationEmail(userEmail, token) {
+function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+}
+async function sendOtpEmail(userEmail, otp) {
     const mailOptions = {
-        from: 'willy.rohan9@ethereal.email',  // Replace
+        from: 'willy.rohan9@ethereal.email',
         to: userEmail,
-        subject: 'Confirm your email',
-        text: `Please click the following link to confirm your email: http://localhost:3000/auth/confirm/${token}`, //Adjust the link
+        subject: 'رمز التحقق من البريد الإلكتروني',
+        text: `رمز التحقق الخاص بك هو: ${otp}`,
     };
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log('Confirmation email sent successfully');
+        const info = await transporter.sendMail(mailOptions);
+        console.log('OTP email sent:', nodemailer.getTestMessageUrl(info));
     } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error('Failed to send confirmation email.'); //  Important:  Throw the error.
+        console.error('Error sending OTP email:', error);
+        throw new Error('Failed to send OTP email');
     }
 }
 // Helper function for password reset email
@@ -63,7 +66,7 @@ async function sendResetPasswordEmail(userEmail, token) {
 // Register API
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, name, phone, gender  , birthDate} = req.body;
+        const { email, password, name, phone, gender, birthDate } = req.body;
 
         // Check if email is already registered
         const existingUser = await User.findOne({ email });
@@ -74,7 +77,7 @@ router.post('/register', async (req, res) => {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
         const confirmationToken = uuidv4();
-
+        const otp = generateOTP();
         // Create new user
         const newUser = new User({
             email,
@@ -84,11 +87,13 @@ router.post('/register', async (req, res) => {
             gender,
             birthDate,
             confirmationToken,
+            otp,
+            otpExpires: Date.now() + 10 * 60 * 1000, // valid for 10 min
         });
         await newUser.save();
 
         // Send confirmation email
-        await sendConfirmationEmail(email, confirmationToken);
+        await sendOtpEmail(email, otp);
 
         res.status(201).json({ message: 'User registered successfully. Please check your email to confirm your registration.' });
     } catch (error) {
@@ -98,19 +103,18 @@ router.post('/register', async (req, res) => {
 });
 
 // Email confirmation API
-router.get('/confirm/:token', async (req, res) => {
+router.get('/confirm/:otp', async (req, res) => {
     try {
-        const { token } = req.params;
+        const { otp } = req.params;
 
         // Find user by confirmation token
-        const user = await User.findOne({ confirmationToken: token });
+        const user = await User.findOne({ otp: otp });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid confirmation token' });
+            return res.status(400).json({ message: 'Invalid confirmation otp' });
         }
-
         // Update user status
         user.isVerified = true;
-        user.confirmationToken = undefined; // Clear the token
+        //user.otp = undefined; // Clear the token
         await user.save();
 
         res.status(200).json({ message: 'Email confirmed successfully. You can now log in.' });
@@ -147,7 +151,7 @@ router.post('/login', async (req, res) => {
             expiresIn: '1h',
         });
 
-        res.status(200).json({ message: 'Login successful', token });
+        res.status(200).json({ message: 'Login successfully', token });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Login failed' });
