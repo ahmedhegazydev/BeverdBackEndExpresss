@@ -14,11 +14,11 @@ const User = require('../models/User'); // Import the User model here
 
 // Email Transport (using ethereal for testing)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
+  host: 'smtp.ethereal.email',
     port: 587,
     auth: {
-        user: 'jedidiah.hane17@ethereal.email',
-        pass: 'MQ4M1qFbkChxDn21kE'
+        user: 'willy.rohan9@ethereal.email',
+        pass: 'ck1Dekgz4Vu5cbrrva'
     }
 });
 
@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
 // Helper function to send email
 async function sendConfirmationEmail(userEmail, token) {
     const mailOptions = {
-        from: 'kellie.mclaughlin31@ethereal.email',  // Replace
+        from: 'willy.rohan9@ethereal.email',  // Replace
         to: userEmail,
         subject: 'Confirm your email',
         text: `Please click the following link to confirm your email: http://localhost:3000/auth/confirm/${token}`, //Adjust the link
@@ -42,8 +42,8 @@ async function sendConfirmationEmail(userEmail, token) {
 }
 // Helper function for password reset email
 async function sendResetPasswordEmail(userEmail, token) {
-      const mailOptions = {
-        from: 'kellie.mclaughlin31@ethereal.email',  // Replace
+    const mailOptions = {
+        from: 'willy.rohan9@ethereal.email',  // Replace
         to: userEmail,
         subject: 'Reset Password',
         text: `Please click the following link to reset your password: http://localhost:3000/auth/reset-password/${token}`, //Adjust
@@ -63,7 +63,7 @@ async function sendResetPasswordEmail(userEmail, token) {
 // Register API
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, name, phone, gender  , birthDate} = req.body;
 
         // Check if email is already registered
         const existingUser = await User.findOne({ email });
@@ -78,7 +78,11 @@ router.post('/register', async (req, res) => {
         // Create new user
         const newUser = new User({
             email,
+            name,
             password: hashedPassword,
+            phone,
+            gender,
+            birthDate,
             confirmationToken,
         });
         await newUser.save();
@@ -167,8 +171,8 @@ router.post('/forgot-password', async (req, res) => {
         user.resetPasswordExpires = Date.now() + 3600000; // Token expires in 1 hour
         await user.save();
 
-       await sendResetPasswordEmail(email, resetPasswordToken);
-       res.status(200).json({ message: 'If this email exists, a reset password link has been sent.' }); //  Consistent message
+        await sendResetPasswordEmail(email, resetPasswordToken);
+        res.status(200).json({ message: 'If this email exists, a reset password link has been sent.' }); //  Consistent message
 
     } catch (error) {
         console.error(error);
