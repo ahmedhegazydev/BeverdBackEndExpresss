@@ -218,19 +218,27 @@ router.post('/change-email', async (req, res) => {
     try {
         const { email, newEmail, password } = req.body;
 
+
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'User not found' });
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
+
+        // Check password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: 'Invalid email or password' });
+        }
+
         const existingUserWithNewEmail = await User.findOne({ newEmail });
         if (existingUserWithNewEmail) {
             return res.status(400).json({ message: 'New Email is already registered' });
         }
 
         const otp = generateOTP();
-        user.newEmail = newEmail;
+        //user.newEmail = newEmail;
         user.otp = otp;
-        user.otpExpires =  Date.now() + 3600000;// Date.now() + 10 * 60 * 1000, // valid for 10 min
+        user.otpExpires = Date.now() + 3600000;//Date.now() + 10 * 60 * 1000, // valid for 10 min
         user.isVerified = false;
         // Date.now() + 3600000; // 1 hour
 
@@ -248,18 +256,20 @@ router.post('/change-email', async (req, res) => {
 //verify change email otp
 router.post('/verify-change-email-otp', async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const { email, otp, newEmail } = req.body;
 
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         }
-
-        if (user.otp !== otp || user.otpExpires < Date.now()) {
-            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        if (user.otp != otp) {
+            return res.status(400).json({ message: 'Invalid OTP' });
         }
 
-        user.email = user.newEmail;
+        if (user.otpExpires < Date.now()) {
+            return res.status(400).json({ message: 'Expired OTP' });
+        }
+        user.email = newEmail;
         user.newEmail = undefined;
         user.otp = undefined;
         user.otpExpires = undefined;
@@ -285,7 +295,10 @@ router.post('/resend-otp', async (req, res) => {
 
         const otp = generateOTP();
         user.otp = otp; // Reuse confirmationToken field
+        user.otpExpires = Date.now() + 3600000;//Date.now() + 10 * 60 * 1000, // valid for 10 min
         user.isVerified = false;
+
+
         await user.save();
         await sendOtpEmail(email, otp);
         res.status(200).json({ message: 'OTP resent successfully.  Please check your email.' });
