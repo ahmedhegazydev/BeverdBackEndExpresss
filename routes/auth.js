@@ -104,8 +104,8 @@ router.post('/register', async (req, res) => {
     await newUser.save();
 
     // Send confirmation email
-    // await sendConfirmationEmail(email, confirmationToken);
-    await sendOtpEmail(email, otp);
+    await sendConfirmationEmail(email, confirmationToken);
+    // await sendOtpEmail(email, otp);
 
     res.status(201).json({
       message:
