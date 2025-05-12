@@ -213,5 +213,88 @@ router.post('/reset-password/:token', async (req, res) => {
 });
 
 
+// Change Email API
+router.post('/change-email', async (req, res) => {
+    try {
+        const { email, newEmail, password } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+        const existingUserWithNewEmail = await User.findOne({ newEmail });
+        if (existingUserWithNewEmail) {
+            return res.status(400).json({ message: 'New Email is already registered' });
+        }
+
+        const otp = generateOTP();
+        user.newEmail = newEmail;
+        user.otp = otp;
+        user.otpExpires =  Date.now() + 3600000;// Date.now() + 10 * 60 * 1000, // valid for 10 min
+        user.isVerified = false;
+        // Date.now() + 3600000; // 1 hour
+
+
+        await user.save();
+        await sendOtpEmail(newEmail, otp);
+
+        res.status(200).json({ message: 'Email change request initiated.  Please check your new email for verification OTP.' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to initiate email change: ' + error.message });
+    }
+});
+//verify change email otp
+router.post('/verify-change-email-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        if (user.otp !== otp || user.otpExpires < Date.now()) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
+
+        user.email = user.newEmail;
+        user.newEmail = undefined;
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        user.isVerified = true;  //Reverify the user
+        await user.save();
+
+        res.status(200).json({ message: 'Email changed successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to verify email change OTP: ' + error.message });
+    }
+});
+
+// Resend OTP API
+router.post('/resend-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        const otp = generateOTP();
+        user.otp = otp; // Reuse confirmationToken field
+        user.isVerified = false;
+        await user.save();
+        await sendOtpEmail(email, otp);
+        res.status(200).json({ message: 'OTP resent successfully.  Please check your email.' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to resend OTP: ' + error.message });
+    }
+});
+
 // export the router module so that server.js file can use it
 module.exports = router;
