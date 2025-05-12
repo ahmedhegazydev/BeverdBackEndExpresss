@@ -15,35 +15,15 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.ethereal.email',
   port: 587,
   auth: {
-    user: 'jedidiah.hane17@ethereal.email',
-    pass: 'MQ4M1qFbkChxDn21kE',
+    user: 'willy.rohan9@ethereal.email',
+    pass: 'ck1Dekgz4Vu5cbrrva',
   },
 });
-
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
-}
-async function sendOtpEmail(userEmail, otp) {
-  const mailOptions = {
-    from: 'kellie.mclaughlin31@ethereal.email',
-    to: userEmail,
-    subject: 'رمز التحقق من البريد الإلكتروني',
-    text: `رمز التحقق الخاص بك هو: ${otp}`,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('OTP email sent:', nodemailer.getTestMessageUrl(info));
-  } catch (error) {
-    console.error('Error sending OTP email:', error);
-    throw new Error('Failed to send OTP email');
-  }
-}
 
 // Helper function to send email
 async function sendConfirmationEmail(userEmail, token) {
   const mailOptions = {
-    from: 'kellie.mclaughlin31@ethereal.email', // Replace
+    from: 'willy.rohan9@ethereal.email', // Replace
     to: userEmail,
     subject: 'Confirm your email',
     text: `Please click the following link to confirm your email: http://localhost:3000/auth/confirm/${token}`, //Adjust the link
@@ -61,7 +41,7 @@ async function sendConfirmationEmail(userEmail, token) {
 // Helper function for password reset email
 async function sendResetPasswordEmail(userEmail, token) {
   const mailOptions = {
-    from: 'kellie.mclaughlin31@ethereal.email', // Replace
+    from: 'willy.rohan9@ethereal.email', // Replace
     to: userEmail,
     subject: 'Reset Password',
     text: `Please click the following link to reset your password: http://localhost:3000/auth/reset-password/${token}`, //Adjust
@@ -79,7 +59,7 @@ async function sendResetPasswordEmail(userEmail, token) {
 // Register API
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, name, phone, gender, birthDate } = req.body;
 
     // Check if email is already registered
     const existingUser = await User.findOne({ email });
@@ -95,7 +75,11 @@ router.post('/register', async (req, res) => {
     // Create new user
     const newUser = new User({
       email,
+      name,
       password: hashedPassword,
+      phone,
+      gender,
+      birthDate,
       confirmationToken,
 
       otp,
