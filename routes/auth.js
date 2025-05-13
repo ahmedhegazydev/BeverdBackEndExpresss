@@ -21,21 +21,23 @@ const transporter = nodemailer.createTransport({
 });
 
 // Helper function to send email
-async function sendConfirmationEmail(userEmail, token) {
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+}
+async function sendOtpEmail(userEmail, otp) {
   const mailOptions = {
-    from: 'willy.rohan9@ethereal.email', // Replace
+    from: 'willy.rohan9@ethereal.email',
     to: userEmail,
-    subject: 'Confirm your email',
-    text: `Please click the following link to confirm your email: http://localhost:3000/auth/confirm/${token}`, //Adjust the link
+    subject: 'رمز التحقق من البريد الإلكتروني',
+    text: `رمز التحقق الخاص بك هو: ${otp}`,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-    console.log('Confirmation email sent successfully');
+    console.log('OTP email sent:', nodemailer.getTestMessageUrl(info));
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send confirmation email.'); //  Important:  Throw the error.
+    console.error('Error sending OTP email:', error);
+    throw new Error('Failed to send OTP email');
   }
 }
 // Helper function for password reset email
@@ -71,7 +73,6 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const confirmationToken = uuidv4();
     const otp = generateOTP();
-
     // Create new user
     const newUser = new User({
       email,
@@ -81,65 +82,39 @@ router.post('/register', async (req, res) => {
       gender,
       birthDate,
       confirmationToken,
-
       otp,
       otpExpires: Date.now() + 10 * 60 * 1000, // valid for 10 min
     });
     await newUser.save();
 
     // Send confirmation email
-    await sendConfirmationEmail(email, confirmationToken);
-    // await sendOtpEmail(email, otp);
+    await sendOtpEmail(email, otp);
 
-    res.status(201).json({
-      message:
-        'User registered successfully. Please check your email to confirm your registration.',
-    });
+    res
+      .status(201)
+      .json({
+        message:
+          'User registered successfully. Please check your email to confirm your registration.',
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Registration failed: ' + error.message }); //Include the error message
   }
 });
 
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    const user = await User.findOne({
-      email,
-      otp,
-      otpExpires: { $gt: Date.now() },
-    });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save();
-
-    res.status(200).json({ message: 'Email verified successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'OTP verification failed' });
-  }
-});
-
 // Email confirmation API
-router.get('/confirm/:token', async (req, res) => {
+router.get('/confirm/:otp', async (req, res) => {
   try {
-    const { token } = req.params;
+    const { otp } = req.params;
 
     // Find user by confirmation token
-    const user = await User.findOne({ confirmationToken: token });
+    const user = await User.findOne({ otp: otp });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid confirmation token' });
+      return res.status(400).json({ message: 'Invalid confirmation otp' });
     }
-
     // Update user status
     user.isVerified = true;
-    user.confirmationToken = undefined; // Clear the token
+    //user.otp = undefined; // Clear the token
     await user.save();
 
     res
@@ -185,7 +160,7 @@ router.post('/login', async (req, res) => {
       }
     );
 
-    res.status(200).json({ message: 'Login successful', token });
+    res.status(200).json({ message: 'Login successfully', token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Login failed' });
@@ -199,9 +174,11 @@ router.post('/forgot-password', async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(200).json({
-        message: 'If this email exists, a reset password link has been sent.',
-      }); //  Don't reveal if email exists
+      return res
+        .status(200)
+        .json({
+          message: 'If this email exists, a reset password link has been sent.',
+        }); //  Don't reveal if email exists
     }
 
     const resetPasswordToken = crypto.randomBytes(20).toString('hex');
@@ -210,9 +187,11 @@ router.post('/forgot-password', async (req, res) => {
     await user.save();
 
     await sendResetPasswordEmail(email, resetPasswordToken);
-    res.status(200).json({
-      message: 'If this email exists, a reset password link has been sent.',
-    }); //  Consistent message
+    res
+      .status(200)
+      .json({
+        message: 'If this email exists, a reset password link has been sent.',
+      }); //  Consistent message
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Forgot password failed' });
@@ -246,6 +225,110 @@ router.post('/reset-password/:token', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Password reset failed' });
+  }
+});
+
+// Change Email API
+router.post('/change-email', async (req, res) => {
+  try {
+    const { email, newEmail, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const existingUserWithNewEmail = await User.findOne({ newEmail });
+    if (existingUserWithNewEmail) {
+      return res
+        .status(400)
+        .json({ message: 'New Email is already registered' });
+    }
+
+    const otp = generateOTP();
+    //user.newEmail = newEmail;
+    user.otp = otp;
+    user.otpExpires = Date.now() + 3600000; //Date.now() + 10 * 60 * 1000, // valid for 10 min
+    user.isVerified = false;
+    // Date.now() + 3600000; // 1 hour
+
+    await user.save();
+    await sendOtpEmail(newEmail, otp);
+
+    res
+      .status(200)
+      .json({
+        message:
+          'Email change request initiated.  Please check your new email for verification OTP.',
+      });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: 'Failed to initiate email change: ' + error.message });
+  }
+});
+//verify change email otp
+router.post('/verify-change-email-otp', async (req, res) => {
+  try {
+    const { email, otp, newEmail } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+    if (user.otp != otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Expired OTP' });
+    }
+    user.email = newEmail;
+    user.newEmail = undefined;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    user.isVerified = true; //Reverify the user
+    await user.save();
+
+    res.status(200).json({ message: 'Email changed successfully.' });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: 'Failed to verify email change OTP: ' + error.message });
+  }
+});
+
+// Resend OTP API
+router.post('/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const otp = generateOTP();
+    user.otp = otp; // Reuse confirmationToken field
+    user.otpExpires = Date.now() + 3600000; //Date.now() + 10 * 60 * 1000, // valid for 10 min
+    user.isVerified = false;
+
+    await user.save();
+    await sendOtpEmail(email, otp);
+    res
+      .status(200)
+      .json({ message: 'OTP resent successfully.  Please check your email.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to resend OTP: ' + error.message });
   }
 });
 
