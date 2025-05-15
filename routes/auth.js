@@ -10,7 +10,10 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer'); // Email sending
 const { v4: uuidv4 } = require('uuid'); // For generating unique IDs
 const User = require('../models/User'); // Import the User model here
-
+// Generate a 64-byte (512-bit) random key
+const secretKeyBuffer = crypto.randomBytes(64);
+// Convert the buffer to a hexadecimal string
+const secretKey = secretKeyBuffer.toString('hex');
 
 // Email Transport (using ethereal for testing)
 const transporter = nodemailer.createTransport({
@@ -88,7 +91,7 @@ router.post('/register', async (req, res) => {
             birthDate,
             confirmationToken,
             otp,
-            otpExpires: Date.now() + 10 * 60 * 1000, // valid for 10 min
+            otpExpires: Date.now() + 3600000//1 hour// Date.now() + 10 * 60 * 1000, // valid for 10 min
         });
         await newUser.save();
 
@@ -106,18 +109,26 @@ router.post('/register', async (req, res) => {
 router.get('/confirm/:otp', async (req, res) => {
     try {
         const { otp } = req.params;
-
         // Find user by confirmation token
         const user = await User.findOne({ otp: otp });
         if (!user) {
             return res.status(400).json({ message: 'Invalid confirmation otp' });
         }
+
+        if (user.otpExpires < Date.now()) {
+            return res.status(400).json({ message: 'Expired OTP' });
+        }
         // Update user status
         user.isVerified = true;
         //user.otp = undefined; // Clear the token
         await user.save();
+        // Generate JWT token
+        const token = jwt.sign({ userId: user._id, email: user.email }, secretKey, {
+            expiresIn: '5h',
+        });
 
-        res.status(200).json({ message: 'Email confirmed successfully. You can now log in.' });
+        res.status(200).json({ message: 'Login successfully', token });
+        //res.status(200).json({ message: 'Email confirmed successfully. You can now log in.', token });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Email confirmation failed' });
@@ -147,8 +158,8 @@ router.post('/login', async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, 'your-secret-key', { // Replace secret key
-            expiresIn: '1h',
+        const token = jwt.sign({ userId: user._id, email: user.email }, secretKey, {
+            expiresIn: '5h',
         });
 
         res.status(200).json({ message: 'Login successfully', token });
