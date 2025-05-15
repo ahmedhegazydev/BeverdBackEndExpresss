@@ -286,8 +286,13 @@ router.post('/verify-change-email-otp', async (req, res) => {
         user.otpExpires = undefined;
         user.isVerified = true;  //Reverify the user
         await user.save();
+    // Generate JWT token
+        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+            expiresIn: '5h',
+        });
 
-        res.status(200).json({ message: 'Email changed successfully.' });
+        res.status(200).json({ message: 'Login successfully', token });
+       // res.status(200).json({ message: 'Email changed successfully.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Failed to verify email change OTP: ' + error.message });
