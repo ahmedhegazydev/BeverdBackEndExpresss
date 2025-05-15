@@ -69,7 +69,7 @@ async function sendResetPasswordEmail(userEmail, token) {
 // Register API
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, name, phone, gender, birthDate } = req.body;
+        const { email, password, name, phone, gender, birthDate , role } = req.body;
 
         // Check if email is already registered
         const existingUser = await User.findOne({ email });
@@ -90,6 +90,7 @@ router.post('/register', async (req, res) => {
             gender,
             birthDate,
             confirmationToken,
+            role,
             otp,
             otpExpires: Date.now() + 3600000//1 hour// Date.now() + 10 * 60 * 1000, // valid for 10 min
         });

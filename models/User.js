@@ -11,6 +11,8 @@ const addressSchema = new mongoose.Schema({
   },
 });
 
+const roleEnum = ['admin', 'user'];
+
 const userSchema = new mongoose.Schema(
   {
     name: String,
@@ -23,7 +25,11 @@ const userSchema = new mongoose.Schema(
     confirmationToken: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
-
+    role: {
+      type: String,
+      enum: roleEnum,
+      default: 'user', // Set 'user' as the default role
+    },
     addresses: [addressSchema],
     favorites: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
