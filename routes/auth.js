@@ -25,6 +25,22 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Middleware to extract user from token
+const authenticateToken = (req, res, next) => {
+    const token = req.header('Authorization')?.split(' ')[1]; // Get token from Authorization header
+
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided' });
+    }
+
+    jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ message: 'Invalid token' });
+        }
+        req.user = decoded; // Store the user data from the token in the request object.  Now you can access it in your routes as req.user.
+        next(); // Call the next middleware or route handler
+    });
+};
 
 // Helper function to send email
 function generateOTP() {
@@ -69,7 +85,7 @@ async function sendResetPasswordEmail(userEmail, token) {
 // Register API
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, name, phone, gender, birthDate , role } = req.body;
+        const { email, password, name, phone, gender, birthDate, role } = req.body;
 
         // Check if email is already registered
         const existingUser = await User.findOne({ email });
