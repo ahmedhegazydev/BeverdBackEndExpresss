@@ -143,7 +143,7 @@ router.post('/login', async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid email' });
+            return res.status(400).json({ message: 'Invalid email',isExist: false });
         }
 
         // // Check if user is verified
