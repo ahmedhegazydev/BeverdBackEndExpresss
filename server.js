@@ -17,12 +17,14 @@ const usersRoute = require('./routes/users');
 const productsRoute = require('./routes/products');
 const authRoute = require('./routes/auth');
 const orderRoute = require('./routes/order');
+const categoryRoute = require('./routes/category');
 
 // Use routes
 app.use('/users', usersRoute);
 app.use('/products', productsRoute);
 app.use('/orders', orderRoute);
 app.use('/auth', authRoute);
+app.use('/categories', categoryRoute);
 
 const port = process.env.PORT || 3000;
 

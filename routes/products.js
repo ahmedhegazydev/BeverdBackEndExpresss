@@ -19,7 +19,7 @@ router.get('/',authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/products/:id', authenticateToken , async (req, res) => {
+router.get('/:id', authenticateToken , async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate('category');
     if (!product) {
@@ -31,7 +31,7 @@ router.get('/products/:id', authenticateToken , async (req, res) => {
   }
 });
 
-router.post('/products', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   // Apply middleware to protect route
   const product = new Product(req.body);
   try {
@@ -42,7 +42,7 @@ router.post('/products', authenticateToken, async (req, res) => {
   }
 });
 
-router.patch('/products/:id', authenticateToken, async (req, res) => {
+router.patch('/:id', authenticateToken, async (req, res) => {
   // Apply middleware to protect route
   try {
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -59,7 +59,7 @@ router.patch('/products/:id', authenticateToken, async (req, res) => {
   }
 });
 
-router.delete('/products/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   // Apply middleware to protect route
   try {
     const product = await Product.findByIdAndDelete(req.params.id);

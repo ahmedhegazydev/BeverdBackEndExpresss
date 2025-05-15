@@ -1,19 +1,19 @@
-
-
 const express = require('express');
 const router = express.Router();
+const Category = require('../models/Category'); // Import the Category model
 const { authenticateToken } = require('../MiddleWare/auth');
-const Order = require('../models/Order');  // Corrected import path
+
+
 
 
 // ===============================
-// Order CRUD Operations
+// Category CRUD Operations
 // ===============================
 router.get('/', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
-        const orders = await Order.find().populate('userId').populate('productVariant');
-        res.json(orders);
+        const categories = await Category.find();
+        res.json(categories);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -22,11 +22,11 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
-        const order = await Order.findById(req.params.id).populate('userId').populate('productVariant');
-        if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
+        const category = await Category.findById(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
         }
-        res.json(order);
+        res.json(category);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -34,10 +34,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 router.post('/', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
-    const order = new Order(req.body);
+    const category = new Category(req.body);
     try {
-        const newOrder = await order.save();
-        res.status(201).json(newOrder);
+        const newCategory = await category.save();
+        res.status(201).json(newCategory);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -46,15 +46,15 @@ router.post('/', authenticateToken, async (req, res) => {
 router.patch('/:id', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
-        const updatedOrder = await Order.findByIdAndUpdate(
+        const updatedCategory = await Category.findByIdAndUpdate(
             req.params.id,
             req.body,
             { new: true }
         );
-        if (!updatedOrder) {
-            return res.status(404).json({ message: 'Order not found' });
+        if (!updatedCategory) {
+            return res.status(404).json({ message: 'Category not found' });
         }
-        res.json(updatedOrder);
+        res.json(updatedCategory);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -63,11 +63,11 @@ router.patch('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
-        const order = await Order.findByIdAndDelete(req.params.id);
-        if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
+        const category = await Category.findByIdAndDelete(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
         }
-        res.json({ message: 'Order deleted successfully' });
+        res.json({ message: 'Category deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

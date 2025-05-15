@@ -18,7 +18,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-router.get('/users/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -31,7 +31,7 @@ router.get('/users/:id', authenticateToken, async (req, res) => {
 });
 
 
-router.patch('/users/:id', authenticateToken, async (req, res) => {
+router.patch('/:id', authenticateToken, async (req, res) => {
     try {
         const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -45,7 +45,7 @@ router.patch('/users/:id', authenticateToken, async (req, res) => {
     }
 });
 
-router.delete('/users/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user) {
