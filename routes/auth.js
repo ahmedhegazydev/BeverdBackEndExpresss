@@ -147,9 +147,9 @@ router.post('/login', async (req, res) => {
         }
 
         // // Check if user is verified
-        // if (!user.isVerified) {
-        //     return res.status(400).json({ message: 'Please confirm your email before logging in.' });
-        // }
+        if (!user.isVerified) {
+            return res.status(400).json({ message: 'Please confirm your email before logging in.' });
+        }
 
         const otp = generateOTP();
         //user.newEmail = newEmail;
