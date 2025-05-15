@@ -1,18 +1,60 @@
 // routes/users.js
+
 const express = require('express');
 const router = express.Router();
+const User = require('../models/User');
+const { authenticateToken } = require('../MiddleWare/auth');
 
-// Define a route
-router.get('/', (req, res) => {
-  res.send('this is user route'); // this gets executed when user visit http://localhost:3000/user
+
+// ===============================
+// User CRUD Operations
+// ===============================
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const users = await User.find();
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-router.get('/101', (req, res) => {
-  res.send('this is user 101 route'); // this gets executed when user visit http://localhost:3000/user/101
+router.get('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-router.get('/102', (req, res) => {
-  res.send('this is user 102 route'); // this gets executed when user visit http://localhost:3000/user/102
+
+router.patch('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+        });
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 // export the router module so that server.js file can use it

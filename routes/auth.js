@@ -3,7 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
-
+require('dotenv').config(); // Load environment variables from .env file
 const bcrypt = require('bcrypt'); // Password hashing
 const jwt = require('jsonwebtoken'); //JWT for authentication
 const crypto = require('crypto');
@@ -11,9 +11,9 @@ const nodemailer = require('nodemailer'); // Email sending
 const { v4: uuidv4 } = require('uuid'); // For generating unique IDs
 const User = require('../models/User'); // Import the User model here
 // Generate a 64-byte (512-bit) random key
-const secretKeyBuffer = crypto.randomBytes(64);
+//const secretKeyBuffer = crypto.randomBytes(64);
 // Convert the buffer to a hexadecimal string
-const secretKey = secretKeyBuffer.toString('hex');
+//const secretKey = secretKeyBuffer.toString('hex');
 
 // Email Transport (using ethereal for testing)
 const transporter = nodemailer.createTransport({
@@ -24,23 +24,6 @@ const transporter = nodemailer.createTransport({
         pass: 'ck1Dekgz4Vu5cbrrva'
     }
 });
-
-// Middleware to extract user from token
-const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization')?.split(' ')[1]; // Get token from Authorization header
-
-    if (!token) {
-        return res.status(401).json({ message: 'No token provided' });
-    }
-
-    jwt.verify(token, secretKey, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid token' });
-        }
-        req.user = decoded; // Store the user data from the token in the request object.  Now you can access it in your routes as req.user.
-        next(); // Call the next middleware or route handler
-    });
-};
 
 // Helper function to send email
 function generateOTP() {
@@ -140,7 +123,7 @@ router.get('/confirm/:otp', async (req, res) => {
         //user.otp = undefined; // Clear the token
         await user.save();
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, secretKey, {
+        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
             expiresIn: '5h',
         });
 
@@ -175,7 +158,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, secretKey, {
+        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
             expiresIn: '5h',
         });
 
