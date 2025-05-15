@@ -2,9 +2,22 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category'); // Import the Category model
 const { authenticateToken } = require('../MiddleWare/auth');
+const multer = require('multer');
+const path = require('path');
 
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');  // Store files in the 'uploads' directory (create this folder)
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const fileExtension = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + fileExtension); // e.g., image-1678884323-1234567.jpg
+    },
+});
 
-
+const upload = multer({ storage: storage });
 
 // ===============================
 // Category CRUD Operations
@@ -32,10 +45,19 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 });
 
-router.post('/', authenticateToken, async (req, res) => {
-    // Apply middleware to protect route
-    const category = new Category(req.body);
+//  Create Category with Image Upload
+router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
     try {
+        let imageUrl = null;
+        if (req.file) {
+            imageUrl = req.file.path;  //  Save the file path (e.g., "uploads/image-12345.jpg")
+        }
+
+        const category = new Category({
+            ...req.body,
+            image: imageUrl,
+        });
+
         const newCategory = await category.save();
         res.status(201).json(newCategory);
     } catch (err) {
@@ -43,14 +65,23 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
-router.patch('/:id', authenticateToken, async (req, res) => {
-    // Apply middleware to protect route
+
+router.patch('/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
+        let imageUrl = null;
+        if (req.file) {
+            imageUrl = req.file.path;
+        }
+
         const updatedCategory = await Category.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            {
+                ...req.body,
+                image: imageUrl,
+            },
             { new: true }
         );
+
         if (!updatedCategory) {
             return res.status(404).json({ message: 'Category not found' });
         }
