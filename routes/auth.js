@@ -143,26 +143,42 @@ router.post('/login', async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid email or password' });
+            return res.status(400).json({ message: 'Invalid email' });
         }
 
-        // Check password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(400).json({ message: 'Invalid email or password' });
-        }
+        // // Check if user is verified
+        // if (!user.isVerified) {
+        //     return res.status(400).json({ message: 'Please confirm your email before logging in.' });
+        // }
 
-        // Check if user is verified
-        if (!user.isVerified) {
-            return res.status(400).json({ message: 'Please confirm your email before logging in.' });
-        }
+        const otp = generateOTP();
+        //user.newEmail = newEmail;
+        user.otp = otp;
+        user.otpExpires = Date.now() + 3600000;//Date.now() + 10 * 60 * 1000, // valid for 10 min
+        user.isVerified = false;
 
-        // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
-            expiresIn: '5h',
-        });
+        await user.save();
+        await sendOtpEmail(email, otp);
 
-        res.status(200).json({ message: 'Login successfully', token });
+        res.status(200).json({ message: 'OTP Sent Successfully, please check your email for verification OTP.' });
+
+        // // Check password
+        // const isPasswordValid = await bcrypt.compare(password, user.password);
+        // if (!isPasswordValid) {
+        //     return res.status(400).json({ message: 'Invalid email or password' });
+        // }
+
+        // // Check if user is verified
+        // if (!user.isVerified) {
+        //     return res.status(400).json({ message: 'Please confirm your email before logging in.' });
+        // }
+
+        // // Generate JWT token
+        // const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+        //     expiresIn: '5h',
+        // });
+
+        // res.status(200).json({ message: 'Login successfully', token });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Login failed' });
@@ -286,13 +302,13 @@ router.post('/verify-change-email-otp', async (req, res) => {
         user.otpExpires = undefined;
         user.isVerified = true;  //Reverify the user
         await user.save();
-    // Generate JWT token
+        // Generate JWT token
         const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
             expiresIn: '5h',
         });
 
         res.status(200).json({ message: 'Login successfully', token });
-       // res.status(200).json({ message: 'Email changed successfully.' });
+        // res.status(200).json({ message: 'Email changed successfully.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Failed to verify email change OTP: ' + error.message });
