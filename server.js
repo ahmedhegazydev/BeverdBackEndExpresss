@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const swaggerUi = require('swagger-ui-express'); // Import swagger-ui-express
+const swaggerSpec = require('./swagger');  // Import the swagger specification
 
 require('dotenv').config();
 
@@ -11,6 +13,8 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('hello root node'); // this gets executed when you visit http://localhost:3000/
 });
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Serve Swagger documentation
+
 
 // Include route files
 const usersRoute = require('./routes/users');
