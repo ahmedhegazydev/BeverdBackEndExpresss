@@ -1,27 +1,43 @@
 const express = require('express');
 const router = express.Router();
-const Category = require('../models/Category'); // Import the Category model
+const Category = require('../models/Category');
 const { authenticateToken } = require('../MiddleWare/auth');
 const multer = require('multer');
 const path = require('path');
 
-// Configure Multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');  // Store files in the 'uploads' directory (create this folder)
+        cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileExtension = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + fileExtension); // e.g., image-1678884323-1234567.jpg
+        cb(null, file.fieldname + '-' + uniqueSuffix + fileExtension);
     },
 });
 
 const upload = multer({ storage: storage });
 
-// ===============================
-// Category CRUD Operations
-// ===============================
+/**
+ * @swagger
+ * /categories:
+ * get:
+ * summary: Retrieve a list of categories.
+ * security:
+ * - bearerAuth: []
+ * tags: [Categories]
+ * responses:
+ * 200:
+ * description: A list of categories.
+ * content:
+ * application/json:
+ * schema:
+ * type: array
+ * items:
+ * $ref: '#/components/schemas/Category'
+ * 500:
+ * description: Server error.
+ */
 router.get('/', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
@@ -32,8 +48,34 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /categories/{id}:
+ * get:
+ * summary: Retrieve a single category by ID.
+ * security:
+ * - bearerAuth: []
+ * tags: [Categories]
+ * parameters:
+ * - in: path
+ * name: id
+ * required: true
+ * description: The ID of the category to retrieve.
+ * schema:
+ * type: string
+ * responses:
+ * 200:
+ * description: Category found.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/Category'
+ * 404:
+ * description: Category not found.
+ * 500:
+ * description: Server error.
+ */
 router.get('/:id', authenticateToken, async (req, res) => {
-    // Apply middleware to protect route
     try {
         const category = await Category.findById(req.params.id);
         if (!category) {
@@ -45,7 +87,38 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 });
 
-//  Create Category with Image Upload
+/**
+ * @swagger
+ * /categories:
+ * post:
+ * summary: Create a new category.
+ * security:
+ * - bearerAuth: []
+ * tags: [Categories]
+ * requestBody:
+ * required: true
+ * content:
+ * multipart/form-data:
+ * schema:
+ * type: object
+ * properties:
+ * name:
+ * type: string
+ * image:
+ * type: string
+ * format: binary
+ * responses:
+ * 201:
+ * description: Category created successfully.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/Category'
+ * 400:
+ * description: Bad request.
+ * 500:
+ * description: Server error.
+ */
 router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         let imageUrl = null;
@@ -65,7 +138,44 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     }
 });
 
-
+/**
+ * @swagger
+ * /categories/{id}:
+ * patch:
+ * summary: Update a category by ID.
+ * security:
+ * - bearerAuth: []
+ * tags: [Categories]
+ * parameters:
+ * - in: path
+ * name: id
+ * required: true
+ * description: The ID of the category to update.
+ * schema:
+ * type: string
+ * requestBody:
+ * content:
+ * multipart/form-data:
+ * schema:
+ * type: object
+ * properties:
+ * name:
+ * type: string
+ * image:
+ * type: string
+ * format: binary
+ * responses:
+ * 200:
+ * description: Category updated successfully.
+ * content:
+ * application/json:
+ * schema:
+ * $ref: '#/components/schemas/Category'
+ * 404:
+ * description: Category not found.
+ * 500:
+ * description: Server error.
+ */
 router.patch('/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         let imageUrl = null;
@@ -91,8 +201,30 @@ router.patch('/:id', authenticateToken, upload.single('image'), async (req, res)
     }
 });
 
+/**
+ * @swagger
+ * /categories/{id}:
+ * delete:
+ * summary: Delete a category by ID.
+ * security:
+ * - bearerAuth: []
+ * tags: [Categories]
+ * parameters:
+ * - in: path
+ * name: id
+ * required: true
+ * description: The ID of the category to delete.
+ * schema:
+ * type: string
+ * responses:
+ * 200:
+ * description: Category deleted successfully.
+ * 404:
+ * description: Category not found.
+ * 500:
+ * description: Server error.
+ */
 router.delete('/:id', authenticateToken, async (req, res) => {
-    // Apply middleware to protect route
     try {
         const category = await Category.findByIdAndDelete(req.params.id);
         if (!category) {
