@@ -18,6 +18,10 @@ const productsRoute = require('./routes/products');
 const authRoute = require('./routes/auth');
 const orderRoute = require('./routes/order');
 const categoryRoute = require('./routes/category');
+const cartRoute = require('./routes/cart');
+const reviewRoute = require('./routes/reviews');
+const returnsRoute = require('./routes/returns');
+const adminsRoute = require('./routes/admins');
 
 // Use routes
 app.use('/users', usersRoute);
@@ -25,6 +29,10 @@ app.use('/products', productsRoute);
 app.use('/orders', orderRoute);
 app.use('/auth', authRoute);
 app.use('/categories', categoryRoute);
+app.use('/carts', cartRoute);
+app.use('/reviews', reviewRoute);
+app.use('/returns', returnsRoute);
+//app.use('/admins', adminsRoute);
 
 const port = process.env.PORT || 3000;
 

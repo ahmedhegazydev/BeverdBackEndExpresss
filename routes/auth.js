@@ -137,9 +137,9 @@ router.get('/confirm/:otp', async (req, res) => {
 
 // Login API
 router.post('/login', async (req, res) => {
+
     try {
         const { email, password } = req.body;
-
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
@@ -185,6 +185,45 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
+// Login Admin API
+router.post('/login-admin', async (req, res) => {
+
+    try {
+        const { email, password } = req.body;
+        // Find user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid email',isExist: false });
+        }
+
+        // // Check if user is verified
+        if (!user.isVerified) {
+            return res.status(400).json({ message: 'Please confirm your email before logging in.' , isVerified: user.isVerified});
+        }
+
+         // // Check if user is admin
+        if (user.role != "admin") {
+            return res.status(400).json({ message: 'You are not authorized to login here' , role: user.role});
+        }
+
+        // // Check password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ message: 'Invalid email or password' });
+        }
+
+        // // Generate JWT token
+        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+            expiresIn: '5h',
+        });
+
+        res.status(200).json({ message: 'Login successfully', token });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Login failed' });
+    }
+});
 
 
 // Forgot Password API

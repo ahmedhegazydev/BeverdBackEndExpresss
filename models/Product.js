@@ -6,7 +6,7 @@ const productVariantSchema = new mongoose.Schema({
   color: String,
   price: Number,
   stock: Number,
-  images: [String],
+  images: [String], // Array of image URLs for the variant
 });
 
 const productSchema = new mongoose.Schema(
