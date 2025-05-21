@@ -5,7 +5,7 @@ const swaggerSpec = require('./swagger');  // Import the swagger specification
 const cors = require('cors');
 // Enable CORS for specific origins (recommended for development and production)
 const corsOptions = {
-  origin: 'http://localhost:4200', // Allow requests from your Angular app
+  origin: 'http://localhost:4300', // Allow requests from your Angular app
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Specify allowed HTTP methods
   credentials: true, // If you need to handle cookies or authorization headers
   allowedHeaders: 'Content-Type, Authorization', // Specify allowed request headers
