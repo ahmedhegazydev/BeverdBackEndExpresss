@@ -54,7 +54,6 @@ Important: This code assumes your frontend sends the images in a field named "im
 // Use upload.array middleware to handle multiple image uploads
 router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => { // 'images' is the field name in the form, 5 is max number of files
     const { name, description, brand, basePrice, category, isFeatured } = req.body;
-
     let images = [];
      if (req.files && Array.isArray(req.files)) {
         images = req.files.map(file => `/uploads/${file.filename}`); // Store file paths
@@ -72,6 +71,7 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
 
     try {
         const newProduct = await product.save();
+
         res.status(201).json(newProduct);
     } catch (err) {
         res.status(400).json({ message: err.message });

@@ -15,6 +15,7 @@ const productSchema = new mongoose.Schema(
     description: String,
     brand: String,
     basePrice: Number,
+    images: [String], // Array of image URLs for the variant
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     isFeatured: Boolean,
     variants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }],
