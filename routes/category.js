@@ -52,7 +52,6 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
             ...req.body,
             image: imageUrl,
         });
-
         const newCategory = await category.save();
         res.status(201).json(newCategory);
     } catch (err) {
