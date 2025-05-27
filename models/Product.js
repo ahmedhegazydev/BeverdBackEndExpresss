@@ -18,6 +18,7 @@ const productSchema = new mongoose.Schema(
     images: [String], // Array of image URLs for the variant
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     isFeatured: Boolean,
+    isOurOffersExciting: Boolean,
     variants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }],
   },
   { timestamps: true }
