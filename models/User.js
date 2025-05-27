@@ -34,9 +34,8 @@ const userSchema = new mongoose.Schema(
     favorites: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
     ],
-    orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }], // ✅ added here
-
-    // models/User.js
+    refreshTokens: [String], 
+    orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
     otp: String,
     otpExpires: Date,
   },

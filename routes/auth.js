@@ -64,6 +64,19 @@ async function sendResetPasswordEmail(userEmail, token) {
 }
 
 
+// Function to generate a new access token
+const generateAccessToken = (user) => {
+    return jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
+        expiresIn: '5h', // Access token expires in 15 minutes
+    });
+};
+
+// Function to generate a new refresh token
+const generateRefreshToken = (user) => {
+    return jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: '7d', // Refresh token expires in 7 days
+    });
+};
 
 // Register API
 router.post('/register', async (req, res) => {
@@ -122,12 +135,15 @@ router.get('/confirm/:otp', async (req, res) => {
         user.isVerified = true;
         //user.otp = undefined; // Clear the token
         await user.save();
-        // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
-            expiresIn: '5h',
-        });
+        
+        // Generate new access and refresh tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
 
-        res.status(200).json({ message: 'Login successfully', token });
+        // Add the new refresh token to the user's refreshTokens array
+        user.refreshTokens.push(refreshToken);
+        await user.save();
+        res.status(200).json({ message: 'Login successfully', token: accessToken, refreshToken, user: user });
         //res.status(200).json({ message: 'Email confirmed successfully. You can now log in.', token });
     } catch (error) {
         console.error(error);
@@ -135,6 +151,56 @@ router.get('/confirm/:otp', async (req, res) => {
     }
 });
 
+
+// Refresh Token API
+router.post('/refresh-token', async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh Token is required' });
+    }
+
+    try {
+        // Verify the refresh token
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        // Find the user by ID from the decoded token
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if the refresh token exists in the user's stored tokens
+        if (!user.refreshTokens.includes(refreshToken)) {
+            // If the refresh token is not found, it might be a revoked token or an attack attempt
+            // Optionally, you could revoke all refresh tokens for this user to mitigate
+            user.refreshTokens = []; // Revoke all tokens for this user
+            await user.save();
+            return res.status(403).json({ message: 'Invalid or revoked refresh token. Please log in again.' });
+        }
+
+        // Generate a new access token
+        const newAccessToken = generateAccessToken(user);
+
+        // Optionally, implement refresh token rotation:
+        // 1. Invalidate the old refresh token (remove it from the array)
+        // 2. Generate a new refresh token and add it to the array
+        // This makes refresh tokens single-use, improving security.
+        // For simplicity, this example just issues a new access token without rotating the refresh token.
+        // If you want rotation:
+        // user.refreshTokens = user.refreshTokens.filter(token => token !== refreshToken);
+        // const newRefreshToken = generateRefreshToken(user);
+        // user.refreshTokens.push(newRefreshToken);
+        // await user.save();
+        // res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+
+        res.status(200).json({ token: newAccessToken }); // If not rotating refresh token
+
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        return res.status(403).json({ message: 'Invalid or expired refresh token. Please log in again.' });
+    }
+});
 // Login API
 router.post('/login', async (req, res) => {
 
@@ -143,12 +209,12 @@ router.post('/login', async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid email',isExist: false });
+            return res.status(400).json({ message: 'Invalid email', isExist: false });
         }
 
         // // Check if user is verified
         if (!user.isVerified) {
-            return res.status(400).json({ message: 'Please confirm your email before logging in.' , isVerified: user.isVerified});
+            return res.status(400).json({ message: 'Please confirm your email before logging in.', isVerified: user.isVerified });
         }
 
         const otp = generateOTP();
@@ -194,17 +260,17 @@ router.post('/login-admin', async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid email',isExist: false });
+            return res.status(400).json({ message: 'Invalid email', isExist: false });
         }
 
         // // Check if user is verified
         if (!user.isVerified) {
-            return res.status(400).json({ message: 'Please confirm your email before logging in.' , isVerified: user.isVerified});
+            return res.status(400).json({ message: 'Please confirm your email before logging in.', isVerified: user.isVerified });
         }
 
-         // // Check if user is admin
+        // // Check if user is admin
         if (user.role != "admin") {
-            return res.status(400).json({ message: 'You are not authorized to login here' , role: user.role});
+            return res.status(400).json({ message: 'You are not authorized to login here', role: user.role });
         }
 
         // // Check password
@@ -218,7 +284,7 @@ router.post('/login-admin', async (req, res) => {
             expiresIn: '5h',
         });
 
-        res.status(200).json({ message: 'Login successfully', token , user:user });
+        res.status(200).json({ message: 'Login successfully', token, user: user });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Login failed' });
