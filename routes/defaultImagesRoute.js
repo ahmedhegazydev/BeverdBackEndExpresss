@@ -25,7 +25,7 @@ const upload = multer({ storage: storage });
 // ===============================
 
 // GET all default images
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const defaultImages = await DefaultImages.find();
         res.json(defaultImages);
@@ -35,7 +35,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET a single default image by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const defaultImage = await DefaultImages.findById(req.params.id);
         if (!defaultImage) {

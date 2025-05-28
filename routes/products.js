@@ -98,7 +98,7 @@ router.delete('/variants/:id', authenticateToken, async (req, res) => {
 // GET all products
 router.get('/',authenticateToken, async (req, res) => {
   try {
-    const products = await Product.find().populate('category');
+    const products = await Product.find().populate('category').populate('variants');
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -108,7 +108,7 @@ router.get('/',authenticateToken, async (req, res) => {
 // GET product by ID (this now comes AFTER /variants to prevent conflict)
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id).populate('category');
+        const product = await Product.findById(req.params.id).populate('category').populate('variants');
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }

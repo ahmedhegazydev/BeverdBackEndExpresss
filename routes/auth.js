@@ -79,7 +79,7 @@ const generateRefreshToken = user => {
     { userId: user._id, email: user.email, role: user.role },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: '100h', // Refresh token expires in 7 days
+      expiresIn: '7d', // Refresh token expires in 7 days
     }
   );
 };
@@ -304,14 +304,20 @@ router.post('/login-admin', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: '5h',
-      }
-    );
+       // Generate new access and refresh tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Add the new refresh token to the user's refreshTokens array
+    user.refreshTokens.push(refreshToken);
+    await user.save();
+    res.status(200).json({
+      message: 'Login successfully',
+      token: accessToken,
+      refreshToken,
+      user: user,
+    });
+
 
     res.status(200).json({ message: 'Login successfully', token, user: user });
   } catch (error) {
