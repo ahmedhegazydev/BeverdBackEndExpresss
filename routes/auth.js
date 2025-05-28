@@ -79,7 +79,7 @@ const generateRefreshToken = user => {
     { userId: user._id, email: user.email, role: user.role },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: '100h', // Refresh token expires in 7 days
+      expiresIn: '7d', // Refresh token expires in 7 days
     }
   );
 };
