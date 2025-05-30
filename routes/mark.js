@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Mark = require('../models/Mark');
-const { authenticateToken } = require('../MiddleWare/auth');
+const { authenticateToken } = require('../MiddleWare/auth'); // Import your authentication middleware
 const multer = require('multer');
 const path = require('path');
 
@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// GET all marks
+// GET all marks (might not require auth if marks are public)
 router.get('/', async (req, res) => {
     try {
         const marks = await Mark.find().populate('products'); // Populate products associated with each mark
@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET a single mark by ID
+// GET a single mark by ID (might not require auth if marks are public)
 router.get('/:id', async (req, res) => {
     try {
         const mark = await Mark.findById(req.params.id).populate('products');
@@ -42,8 +42,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// CREATE a new mark (with image upload)
-router.post('/', upload.single('image'), async (req, res) => {
+// CREATE a new mark (requires authentication)
+router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
     const { name } = req.body;
     const image = req.file ? req.file.path : null; // Get the path of the uploaded image
 
@@ -60,8 +60,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     }
 });
 
-// UPDATE a mark by ID (with optional new image upload)
-router.patch('/:id', upload.single('image'), async (req, res) => {
+// UPDATE a mark by ID (requires authentication)
+router.patch('/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const mark = await Mark.findById(req.params.id);
         if (!mark) {
@@ -82,8 +82,8 @@ router.patch('/:id', upload.single('image'), async (req, res) => {
     }
 });
 
-// DELETE a mark by ID
-router.delete('/:id', async (req, res) => {
+// DELETE a mark by ID (requires authentication)
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const mark = await Mark.findById(req.params.id);
         if (!mark) {
