@@ -46,6 +46,8 @@ const returnsRoute = require('./routes/returns');
 const adminsRoute = require('./routes/admins');
 const defaultImagesRoute = require('./routes/defaultImagesRoute');
 const markRouter = require('./routes/mark');
+const bannerRoutes = require('./routes/banner'); // Adjust path as needed
+
 
 // Use routes
 app.use('/users', usersRoute);
@@ -57,7 +59,8 @@ app.use('/carts', cartRoute);
 app.use('/reviews', reviewRoute);
 app.use('/returns', returnsRoute);
 app.use('/default-images', defaultImagesRoute);
-app.use('/marks', markRouter)
+app.use('/marks', markRouter);
+app.use('/banners', bannerRoutes);
 //app.use('/admins', adminsRoute);
 
 const port = process.env.PORT || 3000;
