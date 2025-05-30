@@ -22,6 +22,10 @@ const productSchema = new mongoose.Schema(
     isOurOffersExciting: Boolean,
     variants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }],
 
+    deliveryNote: {
+      type: String,
+      default: 'توصيل سريع - يوصل غدًا !',
+    },
     details: {
       type: Map,
       of: String,
