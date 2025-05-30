@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // GET all marks (might not require auth if marks are public)
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken , async (req, res) => {
     try {
         const marks = await Mark.find().populate('products'); // Populate products associated with each mark
         res.status(200).json(marks);
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET a single mark by ID (might not require auth if marks are public)
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken,async (req, res) => {
     try {
         const mark = await Mark.findById(req.params.id).populate('products');
         if (!mark) {
