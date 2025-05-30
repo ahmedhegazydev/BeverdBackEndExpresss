@@ -38,16 +38,23 @@ router.get('/variants', authenticateToken, async (req, res) => {
 
 // POST a new product variant
 router.post('/variants', authenticateToken, upload.array('images', 5), async (req, res) => {
+    const {
+        productId, size, color, price, stock,
+        collection, designNumber, occasion, gender,
+        pattern, closureType, upperMaterial, soleMaterial,
+        liningMaterial, toeDesign
+    } = req.body;
+    const images = req.files ? req.files.map(file => file.path) : [];
+
+    const newVariant = new ProductVariant({
+        productId, size, color, price, stock,
+        collection, designNumber, occasion, gender,
+        pattern, closureType, upperMaterial, soleMaterial,
+        liningMaterial, toeDesign,
+        images
+    });
+
     try {
-        const { productId, size, color, price, stock } = req.body;
-        let images = [];
-         if (req.files && Array.isArray(req.files)) {
-          // Ensure the path is correct for serving static files
-          images = req.files.map(file => `uploads/${file.filename}`);
-         }
-        const newVariant = new ProductVariant({
-            productId, size, color, price, stock, images
-        });
         const savedVariant = await newVariant.save();
         res.status(201).json(savedVariant);
     } catch (err) {
@@ -58,36 +65,51 @@ router.post('/variants', authenticateToken, upload.array('images', 5), async (re
 // PATCH/update a product variant
 router.patch('/variants/:id', authenticateToken, upload.array('images', 5), async (req, res) => {
     try {
-        const { productId, size, color, price, stock } = req.body;
-        let images = [];
-         if (req.files && Array.isArray(req.files)) {
-          images = req.files.map(file => `uploads/${file.filename}`);
-         }
-        const updatedVariant = await ProductVariant.findByIdAndUpdate(
-            req.params.id,
-            { productId, size, color, price, stock, images }, // Update images
-            { new: true }
-        );
-        if (!updatedVariant) {
-            return res.status(404).json({ message: 'Variant not found' });
+        const variant = await ProductVariant.findById(req.params.id);
+        if (!variant) {
+            return res.status(404).json({ message: 'Product Variant not found' });
         }
-        res.json(updatedVariant);
+
+        // Update fields if provided in the request body
+        if (req.body.productId != null) variant.productId = req.body.productId;
+        if (req.body.size != null) variant.size = req.body.size;
+        if (req.body.color != null) variant.color = req.body.color;
+        if (req.body.price != null) variant.price = req.body.price;
+        if (req.body.stock != null) variant.stock = req.body.stock;
+        if (req.body.collection != null) variant.collection = req.body.collection;
+        if (req.body.designNumber != null) variant.designNumber = req.body.designNumber;
+        if (req.body.occasion != null) variant.occasion = req.body.occasion;
+        if (req.body.gender != null) variant.gender = req.body.gender;
+        if (req.body.pattern != null) variant.pattern = req.body.pattern;
+        if (req.body.closureType != null) variant.closureType = req.body.closureType;
+        if (req.body.upperMaterial != null) variant.upperMaterial = req.body.upperMaterial;
+        if (req.body.soleMaterial != null) variant.soleMaterial = req.body.soleMaterial;
+        if (req.body.liningMaterial != null) variant.liningMaterial = req.body.liningMaterial;
+        if (req.body.toeDesign != null) variant.toeDesign = req.body.toeDesign;
+
+        // Handle new images (if any)
+        if (req.files && req.files.length > 0) {
+            variant.images = req.files.map(file => file.path); // Replace existing images
+        }
+
+        const updatedVariant = await variant.save();
+        res.status(200).json(updatedVariant);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(400).json({ message: err.message });
     }
 });
 
 // DELETE a product variant
 router.delete('/variants/:id', authenticateToken, async (req, res) => {
-  try {
-    const variant = await ProductVariant.findByIdAndDelete(req.params.id);
-    if (!variant) {
-      return res.status(404).json({ message: 'Variant not found' });
+    try {
+        const variant = await ProductVariant.findByIdAndDelete(req.params.id);
+        if (!variant) {
+            return res.status(404).json({ message: 'Variant not found' });
+        }
+        res.json({ message: 'Variant deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
-    res.json({ message: 'Variant deleted' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 
@@ -96,13 +118,13 @@ router.delete('/variants/:id', authenticateToken, async (req, res) => {
 // ===============================================
 
 // GET all products
-router.get('/',authenticateToken, async (req, res) => {
-  try {
-    const products = await Product.find().populate('category').populate('variants').populate('mark');
-    res.json(products);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+router.get('/', authenticateToken, async (req, res) => {
+    try {
+        const products = await Product.find().populate('category').populate('variants').populate('mark');
+        res.json(products);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 // GET product by ID (this now comes AFTER /variants to prevent conflict)
