@@ -6,8 +6,20 @@ const productVariantSchema = new mongoose.Schema({
   color: String,
   price: Number,
   stock: Number,
-  images: [String], // Array of image URLs for the variant
+  collection: String,
+  designNumber: String,
+  occasion: String,
+  gender: String,
+  pattern: String,
+  closureType: String,
+  upperMaterial: String,
+  soleMaterial: String,
+  liningMaterial: String,
+  toeDesign: String,
+  images: [String], // Array of image URLs
 });
+
+module.exports = mongoose.model('ProductVariant', productVariantSchema);
 
 const productSchema = new mongoose.Schema(
   {
@@ -15,7 +27,7 @@ const productSchema = new mongoose.Schema(
     description: String,
     brand: String,
     basePrice: Number,
-    images: [String], // Array of image URLs for the variant
+    images: [String],
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     mark: { type: mongoose.Schema.Types.ObjectId, ref: 'Mark' },
     isFeatured: Boolean,
@@ -25,11 +37,6 @@ const productSchema = new mongoose.Schema(
     deliveryNote: {
       type: String,
       default: 'توصيل سريع - يوصل غدًا !',
-    },
-    details: {
-      type: Map,
-      of: String,
-      default: {},
     },
     ratingsAverage: {
       type: Number,
