@@ -27,6 +27,7 @@ const productSchema = new mongoose.Schema(
     description: String,
     brand: String,
     basePrice: Number,
+    numOfOrders: Number,
     images: [String],
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     mark: { type: mongoose.Schema.Types.ObjectId, ref: 'Mark' },
