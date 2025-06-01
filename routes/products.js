@@ -29,7 +29,7 @@ const upload = multer({ storage: storage });
 router.get('/variants', authenticateToken, async (req, res) => {
     try {
         // Populate productId to show product name in frontend table
-        const variants = await ProductVariant.find();
+        const variants = await ProductVariant.find().populate('productId');
         res.json(variants);
     } catch (err) {
         res.status(500).json({ message: err.message });
