@@ -348,4 +348,80 @@ router.post('/calculate-product-orders', authenticateToken, async (req, res) => 
     }
 });
 
+
+// NEW API: Search products by name and category name
+router.get('/search-by-categoryName', authenticateToken, async (req, res) => {
+    try {
+        const { productName, categoryName } = req.query;
+        let query = {};
+
+        // Build query for product name
+        if (productName) {
+            query.name = { $regex: productName, $options: 'i' }; // Case-insensitive regex search
+        }
+
+        // Build query for category name
+        if (categoryName) {
+            // First, find categories matching the categoryName
+            const matchingCategories = await Category.find({
+                name: { $regex: categoryName, $options: 'i' }
+            }).select('_id'); // Select only the _id
+
+            const categoryIds = matchingCategories.map(cat => cat._id);
+
+            // If no categories match, no products will match this category filter
+            if (categoryIds.length === 0) {
+                return res.status(200).json([]); // Return empty array if no matching categories
+            }
+
+            // Add category filter to the main product query
+            query.category = { $in: categoryIds };
+        }
+
+        // Execute the product search with category and mark population
+        const products = await Product.find(query)
+            .populate('category')
+            .populate('variants')
+            .populate('mark');
+
+        res.status(200).json(products);
+    } catch (err) {
+        console.error('Error searching products:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// NEW API: Search products by name and category ID
+router.get('/search-by-categoryId', authenticateToken, async (req, res) => {
+    try {
+        const { productName, categoryId } = req.query; // Changed from categoryName to categoryId
+        let query = {};
+
+        // Build query for product name
+        if (productName) {
+            query.name = { $regex: productName, $options: 'i' }; // Case-insensitive regex search
+        }
+
+        // Build query for category ID
+        if (categoryId) {
+            // Directly use categoryId for filtering
+            query.category = categoryId;
+        }
+
+        // Execute the product search with category and mark population
+        const products = await Product.find(query)
+            .populate('category')
+            .populate('variants')
+            .populate('mark');
+
+        res.status(200).json(products);
+    } catch (err) {
+        console.error('Error searching products:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
+
+
 module.exports = router;
