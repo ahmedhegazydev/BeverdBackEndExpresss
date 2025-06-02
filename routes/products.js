@@ -4,6 +4,8 @@ const router = express.Router();
 const { Product, ProductVariant } = require('../models/Product');
 const Category = require('../models/Category'); // Make sure Category is imported
 const Mark = require('../models/Mark'); // Make sure Mark is imported
+const Order = require('../models/Order'); //To Get NumOfOrders in (calculate-product-orders)
+ 
 const { authenticateToken } = require('../MiddleWare/auth');
 const multer = require('multer');
 const path = require('path');
@@ -283,6 +285,66 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         res.json({ message: 'Product deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+
+// Route to calculate and update numOfOrders for all products
+// This route should ideally be protected and/or run as a scheduled task
+router.post('/calculate-product-orders', authenticateToken, async (req, res) => {
+    try {
+        // Step 1: Aggregate orders to count occurrences of each productVariant
+        const variantOrderCounts = await Order.aggregate([
+            // Unwind productVariant array to handle multiple variants per order if applicable
+            { $unwind: '$productVariant' },
+            // Group by productVariant to count orders for each variant
+            {
+                $group: {
+                    _id: '$productVariant',
+                    orderCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Step 2: Map variant counts to their respective products
+        const productOrderMap = new Map();
+
+        for (const variantCount of variantOrderCounts) {
+            const variantId = variantCount._id;
+            const orderCount = variantCount.orderCount;
+
+            // Find the ProductVariant to get its associated product
+            const productVariant = await ProductVariant.findById(variantId).select('product');
+
+            if (productVariant && productVariant.product) {
+                const product = productVariant.product.toString();
+                productOrderMap.set(product, (productOrderMap.get(product) || 0) + orderCount);
+            }
+        }
+
+        // Step 3: Update numOfOrders for each product
+        const updatePromises = [];
+        for (const [product, totalOrders] of productOrderMap.entries()) {
+            updatePromises.push(
+                Product.findByIdAndUpdate(product, { numOfOrders: totalOrders }, { new: true })
+            );
+        }
+
+        // Execute all update promises
+        await Promise.all(updatePromises);
+
+        // Optional: Set numOfOrders to 0 for products that had no orders
+        await Product.updateMany(
+            { _id: { $nin: Array.from(productOrderMap.keys()) } },
+            { numOfOrders: 0 }
+        );
+
+
+        res.status(200).json({ message: 'numOfOrders updated successfully for all products.' });
+
+    } catch (error) {
+        console.error('Error calculating and updating product orders:', error);
+        res.status(500).json({ message: 'Failed to calculate and update product orders', error: error.message });
     }
 });
 
