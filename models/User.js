@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema(
     confirmationToken: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    favorites: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    ],
     role: {
       type: String,
       enum: roleEnum,
@@ -34,7 +37,7 @@ const userSchema = new mongoose.Schema(
     favorites: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' },
     ],
-    refreshTokens: [String], 
+    refreshTokens: [String],
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
     otp: String,
     otpExpires: Date,

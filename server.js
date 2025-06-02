@@ -46,8 +46,7 @@ const returnsRoute = require('./routes/returns');
 const adminsRoute = require('./routes/admins');
 const defaultImagesRoute = require('./routes/defaultImagesRoute');
 const markRouter = require('./routes/mark');
-const bannerRoutes = require('./routes/banner'); // Adjust path as needed
-
+const bannerRoutes = require('./routes/banner');
 
 // Use routes
 app.use('/users', usersRoute);
