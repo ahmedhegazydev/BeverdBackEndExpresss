@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { Product, ProductVariant } = require('../models/Product');
-const Category = require('../models/Category');
+const Category = require('../models/Category'); // Make sure Category is imported
+const Mark = require('../models/Mark'); // Make sure Mark is imported
 const { authenticateToken } = require('../MiddleWare/auth');
 const multer = require('multer');
 const path = require('path');
@@ -22,7 +23,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // ===============================================
-// PRODUCT VARIANT CRUD Operations - MUST BE FIRST!
+// PRODUCT VARIANT CRUD Operations
 // ===============================================
 
 // GET all variants
@@ -38,12 +39,7 @@ router.get('/variants', authenticateToken, async (req, res) => {
 
 // POST a new product variant
 router.post('/variants', authenticateToken, upload.array('images', 5), async (req, res) => {
-    const {
-        product, size, color, price, stock,
-        collection, designNumber, occasion, gender,
-        pattern, closureType, upperMaterial, soleMaterial,
-        liningMaterial, toeDesign
-    } = req.body;
+    const { product, size, color, price, stock, collection, designNumber, occasion, gender, pattern, closureType, upperMaterial, soleMaterial, liningMaterial, toeDesign } = req.body;
     const images = req.files ? req.files.map(file => file.path) : [];
 
     const newVariant = new ProductVariant({
@@ -56,6 +52,10 @@ router.post('/variants', authenticateToken, upload.array('images', 5), async (re
 
     try {
         const savedVariant = await newVariant.save();
+        // Optional: Add variant to its associated product's variants array
+        if (product) {
+            await Product.findByIdAndUpdate(product, { $push: { variants: savedVariant._id } });
+        }
         res.status(201).json(savedVariant);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -69,6 +69,9 @@ router.patch('/variants/:id', authenticateToken, upload.array('images', 5), asyn
         if (!variant) {
             return res.status(404).json({ message: 'Product Variant not found' });
         }
+
+        // Store old product if it changes
+        const oldProduct = variant.product;
 
         // Update fields if provided in the request body
         if (req.body.product != null) variant.product = req.body.product;
@@ -93,11 +96,22 @@ router.patch('/variants/:id', authenticateToken, upload.array('images', 5), asyn
         }
 
         const updatedVariant = await variant.save();
+
+        // If product changed, update product's variants array
+        if (oldProduct && oldProduct.toString() !== updatedVariant.product.toString()) {
+            await Product.findByIdAndUpdate(oldProduct, { $pull: { variants: variant._id } });
+            await Product.findByIdAndUpdate(updatedVariant.product, { $push: { variants: updatedVariant._id } });
+        } else if (!oldProduct && updatedVariant.product) { // If it was null and now has a product
+             await Product.findByIdAndUpdate(updatedVariant.product, { $push: { variants: updatedVariant._id } });
+        }
+
+
         res.status(200).json(updatedVariant);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 // DELETE a product variant
 router.delete('/variants/:id', authenticateToken, async (req, res) => {
@@ -106,15 +120,18 @@ router.delete('/variants/:id', authenticateToken, async (req, res) => {
         if (!variant) {
             return res.status(404).json({ message: 'Variant not found' });
         }
+        // Remove variant from its associated product's variants array
+        if (variant.product) {
+            await Product.findByIdAndUpdate(variant.product, { $pull: { variants: variant._id } });
+        }
         res.json({ message: 'Variant deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-
 // ===============================================
-// PRODUCT CRUD Operations - MUST BE AFTER VARIANT ROUTES
+// PRODUCT CRUD Operations
 // ===============================================
 
 // GET all products
@@ -127,7 +144,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// GET product by ID (this now comes AFTER /variants to prevent conflict)
+// GET product by ID
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const product = await Product.findById(req.params.id).populate('category').populate('variants').populate('mark');
@@ -154,8 +171,27 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
         });
 
         const newProduct = await product.save();
+
+        // === CRITICAL ADDITION: Link product to category ===
+        if (newProduct.category) {
+            await Category.findByIdAndUpdate(
+                newProduct.category,
+                { $push: { products: newProduct._id } },
+                { new: true, useFindAndModify: false }
+            );
+        }
+        // === CRITICAL ADDITION: Link product to mark ===
+        if (newProduct.mark) {
+            await Mark.findByIdAndUpdate( // Assuming Mark model is imported and available
+                newProduct.mark,
+                { $push: { products: newProduct._id } },
+                { new: true, useFindAndModify: false }
+            );
+        }
+
         res.status(201).json(newProduct);
     } catch (err) {
+        console.error('Error creating product:', err); // Log the full error
         res.status(400).json({ message: err.message });
     }
 });
@@ -163,9 +199,14 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
 // PATCH/update a product
 router.patch('/:id', authenticateToken, upload.array('images', 5), async (req, res) => {
     try {
-        const product = req.params.id;
+        const productId = req.params.id;
         const updates = { ...req.body };
         let imageUrls = [];
+
+        // Store old category and mark for unlinking if they change
+        const oldProduct = await Product.findById(productId);
+        const oldCategoryId = oldProduct ? oldProduct.category : null;
+        const oldMarkId = oldProduct ? oldProduct.mark : null;
 
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             imageUrls = req.files.map(file => `uploads/${file.filename}`);
@@ -173,7 +214,7 @@ router.patch('/:id', authenticateToken, upload.array('images', 5), async (req, r
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(
-            product,
+            productId,
             updates,
             { new: true, runValidators: true }
         );
@@ -181,8 +222,32 @@ router.patch('/:id', authenticateToken, upload.array('images', 5), async (req, r
         if (!updatedProduct) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
+        // === CRITICAL ADDITION: Update category linkage ===
+        const newCategoryId = updatedProduct.category;
+        if (oldCategoryId && (!newCategoryId || oldCategoryId.toString() !== newCategoryId.toString())) {
+            // Remove product from old category
+            await Category.findByIdAndUpdate(oldCategoryId, { $pull: { products: updatedProduct._id } });
+        }
+        if (newCategoryId && (!oldCategoryId || oldCategoryId.toString() !== newCategoryId.toString())) {
+            // Add product to new category
+            await Category.findByIdAndUpdate(newCategoryId, { $push: { products: updatedProduct._id } });
+        }
+
+        // === CRITICAL ADDITION: Update mark linkage ===
+        const newMarkId = updatedProduct.mark;
+        if (oldMarkId && (!newMarkId || oldMarkId.toString() !== newMarkId.toString())) {
+            // Remove product from old mark
+            await Mark.findByIdAndUpdate(oldMarkId, { $pull: { products: updatedProduct._id } });
+        }
+        if (newMarkId && (!oldMarkId || oldMarkId.toString() !== newMarkId.toString())) {
+            // Add product to new mark
+            await Mark.findByIdAndUpdate(newMarkId, { $push: { products: updatedProduct._id } });
+        }
+
         res.json(updatedProduct);
     } catch (err) {
+        console.error('Error updating product:', err); // Log the full error
         res.status(500).json({ message: err.message });
     }
 });
@@ -194,11 +259,31 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
+        // === CRITICAL ADDITION: Unlink product from category ===
+        if (product.category) {
+            await Category.findByIdAndUpdate(
+                product.category,
+                { $pull: { products: product._id } },
+                { new: true, useFindAndModify: false }
+            );
+        }
+        // === CRITICAL ADDITION: Unlink product from mark ===
+        if (product.mark) {
+            await Mark.findByIdAndUpdate(
+                product.mark,
+                { $pull: { products: product._id } },
+                { new: true, useFindAndModify: false }
+            );
+        }
+        // Optional: Delete associated variants as well
+        // await ProductVariant.deleteMany({ productId: product._id });
+
+
         res.json({ message: 'Product deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
-
 
 module.exports = router;
