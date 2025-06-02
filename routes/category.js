@@ -21,7 +21,7 @@ const upload = multer({ storage: storage });
 router.get('/', authenticateToken, async (req, res) => {
     // Apply middleware to protect route
     try {
-        const categories = await Category.find();
+        const categories = await Category.find().populate("products");
         res.json(categories);
     } catch (err) {
         res.status(500).json({ message: err.message });

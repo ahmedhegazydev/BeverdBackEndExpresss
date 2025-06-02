@@ -28,8 +28,8 @@ const upload = multer({ storage: storage });
 // GET all variants
 router.get('/variants', authenticateToken, async (req, res) => {
     try {
-        // Populate productId to show product name in frontend table
-        const variants = await ProductVariant.find().populate('productId');
+        // Populate product to show product name in frontend table
+        const variants = await ProductVariant.find().populate('product');
         res.json(variants);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -39,7 +39,7 @@ router.get('/variants', authenticateToken, async (req, res) => {
 // POST a new product variant
 router.post('/variants', authenticateToken, upload.array('images', 5), async (req, res) => {
     const {
-        productId, size, color, price, stock,
+        product, size, color, price, stock,
         collection, designNumber, occasion, gender,
         pattern, closureType, upperMaterial, soleMaterial,
         liningMaterial, toeDesign
@@ -47,7 +47,7 @@ router.post('/variants', authenticateToken, upload.array('images', 5), async (re
     const images = req.files ? req.files.map(file => file.path) : [];
 
     const newVariant = new ProductVariant({
-        productId, size, color, price, stock,
+        product, size, color, price, stock,
         collection, designNumber, occasion, gender,
         pattern, closureType, upperMaterial, soleMaterial,
         liningMaterial, toeDesign,
@@ -71,7 +71,7 @@ router.patch('/variants/:id', authenticateToken, upload.array('images', 5), asyn
         }
 
         // Update fields if provided in the request body
-        if (req.body.productId != null) variant.productId = req.body.productId;
+        if (req.body.product != null) variant.product = req.body.product;
         if (req.body.size != null) variant.size = req.body.size;
         if (req.body.color != null) variant.color = req.body.color;
         if (req.body.price != null) variant.price = req.body.price;
@@ -163,7 +163,7 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
 // PATCH/update a product
 router.patch('/:id', authenticateToken, upload.array('images', 5), async (req, res) => {
     try {
-        const productId = req.params.id;
+        const product = req.params.id;
         const updates = { ...req.body };
         let imageUrls = [];
 
@@ -173,7 +173,7 @@ router.patch('/:id', authenticateToken, upload.array('images', 5), async (req, r
         }
 
         const updatedProduct = await Product.findByIdAndUpdate(
-            productId,
+            product,
             updates,
             { new: true, runValidators: true }
         );

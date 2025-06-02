@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productVariantSchema = new mongoose.Schema({
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   size: String,
   color: String,
   price: Number,
@@ -34,7 +34,6 @@ const productSchema = new mongoose.Schema(
     isFeatured: Boolean,
     isOurOffersExciting: Boolean,
     variants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant' }],
-
     deliveryNote: {
       type: String,
       default: 'توصيل سريع - يوصل غدًا !',

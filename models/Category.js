@@ -14,6 +14,7 @@ const categorySchema = new mongoose.Schema(
     isActive: Boolean,
     products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 
+
   },
   { timestamps: true }
 
