@@ -137,7 +137,7 @@ router.delete('/variants/:id', authenticateToken, async (req, res) => {
 // ===============================================
 
 // GET all products
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const products = await Product.find().populate('category').populate('variants').populate('mark');
         res.json(products);
@@ -291,7 +291,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
 // Route to calculate and update numOfOrders for all products
 // This route should ideally be protected and/or run as a scheduled task
-router.post('/calculate-product-orders', authenticateToken, async (req, res) => {
+router.post('/calculate-product-orders', async (req, res) => {
     try {
         // Step 1: Aggregate orders to count occurrences of each productVariant
         const variantOrderCounts = await Order.aggregate([
@@ -350,7 +350,7 @@ router.post('/calculate-product-orders', authenticateToken, async (req, res) => 
 
 
 // NEW API: Search products by name and category name
-router.get('/search-by-categoryName', authenticateToken, async (req, res) => {
+router.get('/search-by-categoryName', async (req, res) => {
     try {
         const { productName, categoryName } = req.query;
         let query = {};
@@ -392,7 +392,7 @@ router.get('/search-by-categoryName', authenticateToken, async (req, res) => {
 });
 
 // NEW API: Search products by name and category ID
-router.get('/search-by-categoryId', authenticateToken, async (req, res) => {
+router.get('/search-by-categoryId', async (req, res) => {
     try {
         const { productName, categoryId } = req.query; // Changed from categoryName to categoryId
         let query = {};

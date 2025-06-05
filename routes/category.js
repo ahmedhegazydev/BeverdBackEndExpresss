@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
     // Apply middleware to protect route
     try {
         const categories = await Category.find().populate("products");
