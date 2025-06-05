@@ -147,7 +147,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET product by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const product = await Product.findById(req.params.id).populate('category').populate('variants').populate('mark');
         if (!product) {
